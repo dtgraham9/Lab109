@@ -41,59 +41,87 @@ public class Client {
         throw new RuntimeException("Invalid op specified (" + op + ")");
     }
     
-    public static String toPostFix(String expression) {
+    public static LinkedQueue<String> toPostFix(String expression) {
         
-        String[] tokens = expression.split(" ");
-        LinkedStack ops = new LinkedStack();
+        Scanner scan = new Scanner(expression);
+        LinkedStack<String> ops = new LinkedStack();
+        LinkedQueue<String> postFix = new LinkedQueue();
         
-        String postFixStr = "";
-        
-        for (int i = 0; i < tokens.length; i++) {
-            if (tokens[i].equals("(")) {
-                ops.push(tokens[i]);
+        while (scan.hasNext()) {
+            String token = scan.next();
+            if (token.equals("(")) {
+                ops.push(token);
             }
-            else if (tokens[i].equals(")")) {
+            else if (token.equals(")")) {
                 while (! ops.top().equals("(")) {
-                    postFixStr += ops.pop() + " ";
+                    postFix.enqueue(ops.pop());
                 }
-                ops.pop(); //pop the remaining "(" and throw it away
+                ops.pop(); //pop the remaining "("'s and throw it away
             }
-            else if (! isOp(tokens[i])) {
-                postFixStr += tokens[i] + " ";
+            else if (! isOp(token)) {
+                postFix.enqueue(token);
             }
-            else { // tokens[i] is an operator...
+            else { // token is an operator...
                 
-                boolean tokenProcessed = false; // we might have some work to do first before
-                                                // we can push this token...
+                boolean tokenProcessed = false; 
+                                                
                 
                 while ( ! tokenProcessed ) {
                     if (ops.isEmpty() || ops.top().equals("(")) {  
-                        ops.push(tokens[i]);
+                        ops.push(token);
                         tokenProcessed = true;
                     }
                     else {
                         String topOp = (String) ops.top();
                         
-                        if ((getPrecedence(tokens[i]) > getPrecedence(topOp)) ||
-                            ((getPrecedence(tokens[i]) == getPrecedence(topOp))                                    )) {
-                            ops.push(tokens[i]);
+                        if ((getPrecedence(token) > getPrecedence(topOp)) ||
+                            ((getPrecedence(token) == getPrecedence(topOp)))) {
+                            ops.push(token);
                             tokenProcessed = true;
                         }
                         else {
-                            postFixStr += ops.pop() + " ";
+                            postFix.enqueue(ops.pop());
                         } 
                     } 
                 } 
             } 
-        } //end for loop (all tokens now are in postFixStr or the ops stack now)
+        } //end loop (all tokens are now in postFix or the ops stack now)
         
-        // we finish by moving elements from the stack to postFixStr...
+        // move elements from the stack to postFix
         while (! ops.isEmpty()) {
-            postFixStr += ops.pop() + " ";
+            postFix.enqueue(ops.pop());
         }
         
-        return postFixStr;
+        return postFix;
     } 
+    
+    public static LinkedQueue<LinkedBinaryTree> makeTreeNodes(LinkedQueue<String> queue){
+        LinkedQueue<LinkedBinaryTree> tree = new LinkedQueue();
+        while(!queue.isEmpty()){
+            LinkedBinaryTree node = new LinkedBinaryTree();
+            node.addRoot(queue.dequeue());
+            tree.enqueue(node);
+        }
+        return tree;
+    }
+    
+    public static LinkedBinaryTree constructTree(LinkedQueue<LinkedBinaryTree> queue){
+        LinkedStack<LinkedBinaryTree> treeBuilder = new LinkedStack();
+        while(!queue.isEmpty()){
+            LinkedBinaryTree testNode =  queue.dequeue();
+            if(isOp((String) testNode.root().getElement())){
+                LinkedBinaryTree rightBranch = treeBuilder.pop();
+                LinkedBinaryTree leftBranch = treeBuilder.pop();
+                testNode.attach(testNode.root, leftBranch, rightBranch);
+                treeBuilder.push(testNode);
+            }
+            else{
+                treeBuilder.push(testNode);
+            }
+        }
+        return treeBuilder.pop();
+    }
+    
 
     public static Scanner filePath(Scanner scan){
         String path = "src\\data.txt";
@@ -125,7 +153,17 @@ public class Client {
      */
     public static void main(String[] args) {
         Scanner scan = null;
-        LinkedQueue queueFile = storeInQueue(scan);
+        LinkedQueue<String> queueFile = storeInQueue(scan);
+        while(!queueFile.isEmpty()){
+            LinkedQueue<String> postFix = toPostFix((String) queueFile.dequeue());
+            LinkedQueue<LinkedBinaryTree> postFixTree = makeTreeNodes(postFix);
+            LinkedBinaryTree myTree = constructTree(postFixTree);
+            Iterable<Position<String>> p =  myTree.postorder();
+            for(Position<String> s : p){
+                System.out.print(s.getElement()+ " ");
+            }
+            System.out.println("");
+        }
         System.out.println(toPostFix((String) queueFile.dequeue()));
         System.out.println(toPostFix("( ( 5 + 2 ) * 3 ) - 1"));
         
