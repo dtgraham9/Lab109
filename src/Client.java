@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.Scanner;
+import javax.swing.JOptionPane;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -19,10 +20,10 @@ public class Client {
     public static String[][] opsByPrecedence = {{"+","-"},{"*","/"}};
     public static String[][] opsBrackets = {{"(",")"}, {"[","]"},{"{","}"}};
     
-    private static boolean isOp(String s) {
+    private static boolean isOp(String token) {
         for (int i = 0; i < opsByPrecedence.length; i++) {
             for (int j = 0; j < opsByPrecedence[i].length; j++) {
-                if (s.equals(opsByPrecedence[i][j])) {
+                if (token.equals(opsByPrecedence[i][j])) {
                     return true;
                 }
             }
@@ -31,16 +32,16 @@ public class Client {
     }
 
     
-    private static int getPrecedence(String op) {
+    private static int getPrecedence(String token) {
         for (int i = 0; i < opsByPrecedence.length; i++) {
             for (int j = 0; j < opsByPrecedence[i].length; j++) {
-                if (op.equals(opsByPrecedence[i][j])) {
+                if (token.equals(opsByPrecedence[i][j])) {
                     return i;
                 }
             }
         }
         for(int i = 0; i < opsBrackets.length; i++ ){
-            if(isOpsLeftBracket(op)){
+            if(isOpsLeftBracket(token)){
                 return 0;
             }
         }
@@ -201,17 +202,48 @@ public class Client {
         return treeBuilder.pop();
     }
     
+    public static boolean confirmExit(){
+        int option = JOptionPane.showConfirmDialog(null,"Are you sure you want to exit?","exit", JOptionPane.YES_NO_OPTION);
+        return JOptionPane.YES_OPTION == option;
+    }
 
-    public static Scanner filePath(Scanner scan){
-        String path = "src\\data.txt";
-        File myFile;
-        String filePath = new File(path).getAbsolutePath();
-        try{
-            myFile = new File(filePath);
-            scan = new Scanner(myFile);
-        }
-        catch(FileNotFoundException e){
-            
+    public static Scanner filePath(Scanner scan) {
+        boolean debug = false;
+        if (debug) {
+            String path = "src\\data.txt";
+            File myFile;
+            String filePath = new File(path).getAbsolutePath();
+            try {
+                myFile = new File(filePath);
+                scan = new Scanner(myFile);
+            } catch (FileNotFoundException e) {
+
+            }
+            return scan;
+        } else {
+            boolean statusCheck = false;
+            while (!(statusCheck)) {
+                String prompt = "Enter in String Path to Data";
+                String path = JOptionPane.showInputDialog(null, prompt);
+                if (null == path) {
+                    statusCheck = confirmExit();
+                    if (statusCheck) {
+                        break;
+                    } else {
+                        continue;
+                    }
+                }
+                File file;
+                try {
+                    file = new File(path);
+                    scan = new Scanner(file);
+                    statusCheck = true;
+
+                } catch (FileNotFoundException e) {
+                    System.out.println("Invalid path: " + path);
+                    JOptionPane.showMessageDialog(null, "Not a valid file location, please enter valid path");
+                }
+            }
         }
         return scan;
     }
@@ -221,10 +253,53 @@ public class Client {
         LinkedQueue queueFile = new LinkedQueue();
         scan = filePath(scan);
         
-        while(scan.hasNextLine()){
-            queueFile.enqueue(scan.nextLine());
+        try {
+            while (scan.hasNextLine()) {
+                queueFile.enqueue(scan.nextLine());
+            }
+        }
+        catch (NullPointerException e){
+            
         }
         return queueFile;
+    }
+    
+    public static double evaluateExpression(LinkedQueue queue){
+        LinkedQueue<String> temp = new LinkedQueue();
+        LinkedStack<Double> stack = new LinkedStack();
+        while(!queue.isEmpty()){
+            String token  = (String) queue.dequeue();
+            temp.enqueue(token);
+            if(isOp(token)){
+                Double product;
+                Double rightOperand = stack.pop();
+                Double leftOperand = stack.pop();
+                switch((String) token){
+                    case "*":
+                        product = leftOperand * rightOperand ;
+                        stack.push(product);
+                        break;
+                    case "/":
+                        product = leftOperand /rightOperand ;
+                        stack.push(product);
+                        break;
+                    case "+":
+                        product = leftOperand + rightOperand;
+                        stack.push(product);
+                        break;
+                    case "-":
+                        product = leftOperand - rightOperand;
+                        stack.push(product);
+                        break;
+                        
+                }
+            }
+            else {
+                stack.push((Double.parseDouble(token)));
+            }
+        }
+        queue = temp;
+        return stack.pop();
     }
     
     /**
@@ -235,18 +310,47 @@ public class Client {
         LinkedQueue<String> queueFile = storeInQueue(scan);
         while(!queueFile.isEmpty()){
             try{
-            LinkedQueue<String> postFix = toPostFix((String) queueFile.dequeue());
-            LinkedQueue<LinkedBinaryTree> postFixTree = makeTreeNodes(postFix);
-            LinkedBinaryTree myTree = constructTree(postFixTree);
-            Iterable<Position<String>> p =  myTree.postorder();
-            for(Position<String> s : p){
-                System.out.print(s.getElement()+ " ");
-            }
-            System.out.println("");
+                String expression = (String) queueFile.dequeue();
+                System.out.println("Expression: " + expression);
+                LinkedQueue<String> postFix = toPostFix(expression);
+                
+                LinkedQueue<LinkedBinaryTree> postFixTree = makeTreeNodes(postFix);
+                LinkedBinaryTree myTree = constructTree(postFixTree);
+                
+                System.out.print("Pre Order: ");
+                Iterable<Position<String>> preOrder = myTree.preorder();
+                for(Position<String> pO : preOrder){
+                    System.out.print(pO.getElement() + " ");
+                }
+                
+                System.out.print("\nIn Order: ");
+                Iterable<Position<String>> inOrder = myTree.inorder();
+                for(Position<String> iO : inOrder){
+                    System.out.print(iO.getElement() + " ");
+                }
+                
+                System.out.print("\nPost Order: ");
+                StringBuilder postFixExpression = new StringBuilder();
+                LinkedQueue<String> postFixQueue = new LinkedQueue();
+                Iterable<Position<String>> postOrder =  myTree.postorder();
+                for(Position<String> pO : postOrder){
+                    postFixExpression.append(pO.getElement()).append(" ");
+                    postFixQueue.enqueue(pO.getElement());
+                    System.out.print(pO.getElement()+ " ");
+                }
+                
+                System.out.print("\nEuler's Tour: ");
+                LinkedBinaryTree.parenthesize(myTree, myTree.root);
+                
+                System.out.println("\nPost Fix Expression: " + postFixExpression.toString());
+                System.out.println("Evaluated Expression: " + evaluateExpression(postFixQueue));
+                
+                System.out.println("\n");
             }
             catch (RuntimeException e){
-                e.printStackTrace();
+                System.out.println("\033[0;31m" + e.toString() + "\n");
             }
+            
         }
 
         
