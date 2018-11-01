@@ -17,6 +17,7 @@ import java.util.Scanner;
 public class Client {
         
     public static String[][] opsByPrecedence = {{"+","-"},{"*","/"}};
+    public static String[][] opsBrackets = {{"(",")"}, {"[","]"},{"{","}"}};
     
     private static boolean isOp(String s) {
         for (int i = 0; i < opsByPrecedence.length; i++) {
@@ -38,25 +39,97 @@ public class Client {
                 }
             }
         }
-        throw new RuntimeException("Invalid op specified (" + op + ")");
+        for(int i = 0; i < opsBrackets.length; i++ ){
+            if(isOpsLeftBracket(op)){
+                return 0;
+            }
+        }
+        return -1;
     }
+    
+    private static boolean isOpsLeftBracket(String token){
+        for(int i = 0; i<opsBrackets.length; i++){
+            if(token.equals(opsBrackets[i][0]))
+                return true;
+        }
+        return false;
+    }
+    
+    private static boolean isOpsRightBracket(String token){
+        for(int i = 0; i<opsBrackets.length; i++){
+            if(token.equals(opsBrackets[i][1]))
+                return true;
+        }
+        return false;
+    }
+    
+    private static boolean compareBrackets(String leftBracket, String rightBracket){
+        for(int i = 0; i<3; i++){
+            if(leftBracket.equals(opsBrackets[i][0]) && rightBracket.equals(opsBrackets[i][1]))
+                return true;
+        }
+        return false;
+    }
+    private static boolean isBracket(String token) {
+        for (int i = 0; i < opsBrackets.length; i++) {
+            for (int j = 0; j < opsBrackets[i].length; j++) {
+                if (token.equals(opsBrackets[i][j])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
     
     public static LinkedQueue<String> toPostFix(String expression) {
         
         Scanner scan = new Scanner(expression);
         LinkedStack<String> ops = new LinkedStack();
         LinkedQueue<String> postFix = new LinkedQueue();
-        
+        LinkedStack<String> brackets = new LinkedStack();
+        int operandCounter = 0; 
+        int operatorCounter = 0; 
+        boolean trackTokenType = false; //false for operand true for operator
         while (scan.hasNext()) {
             String token = scan.next();
-            if (token.equals("(")) {
-                ops.push(token);
+            boolean[] isTokenBracket = {false,false};
+            if(isOp(token)){
+                trackTokenType = true;
+                operatorCounter++;
             }
-            else if (token.equals(")")) {
-                while (! ops.top().equals("(")) {
-                    postFix.enqueue(ops.pop());
+                
+            else if(isBracket(token)){}//prevent tokenType from changing
+            
+            else {
+               trackTokenType = false;
+               operandCounter++;
+            }
+            isTokenBracket[0] = isOpsLeftBracket(token);
+            isTokenBracket[1]= isOpsRightBracket(token);
+            if (isTokenBracket[0]) {
+                ops.push(token);
+                brackets.push(token);
+            }
+            else if (isTokenBracket[1]) {
+                boolean bracketsSolved = false;
+                while (! (bracketsSolved || ops.isEmpty())) {
+                    if(isOpsLeftBracket(ops.top())){
+                        if(compareBrackets(ops.top(),token)){
+                            ops.pop();
+                            brackets.pop();
+                            bracketsSolved = true;
+                        }
+                        else{
+                            throw new RuntimeException("Invalid brackets "
+                                    + "specified ( \'" + ops.top() + "\' , \'" + token+ "\' )");
+                        }
+                    }
+                    else{
+                      postFix.enqueue(ops.pop());  
+                    }
+                    
                 }
-                ops.pop(); //pop the remaining "("'s and throw it away
             }
             else if (! isOp(token)) {
                 postFix.enqueue(token);
@@ -91,7 +164,13 @@ public class Client {
         while (! ops.isEmpty()) {
             postFix.enqueue(ops.pop());
         }
-        
+        if(!brackets.isEmpty())
+            throw new RuntimeException("Brackets incomplete");
+        else if(trackTokenType)
+            throw new RuntimeException("Expression doesn't end with operand");
+        else if((operandCounter-operatorCounter) != 1)
+            throw new RuntimeException("Expression doesn't have corrent amount "
+                    + "operators or operands");
         return postFix;
     } 
     
@@ -155,6 +234,7 @@ public class Client {
         Scanner scan = null;
         LinkedQueue<String> queueFile = storeInQueue(scan);
         while(!queueFile.isEmpty()){
+            try{
             LinkedQueue<String> postFix = toPostFix((String) queueFile.dequeue());
             LinkedQueue<LinkedBinaryTree> postFixTree = makeTreeNodes(postFix);
             LinkedBinaryTree myTree = constructTree(postFixTree);
@@ -163,9 +243,12 @@ public class Client {
                 System.out.print(s.getElement()+ " ");
             }
             System.out.println("");
+            }
+            catch (RuntimeException e){
+                e.printStackTrace();
+            }
         }
-        System.out.println(toPostFix((String) queueFile.dequeue()));
-        System.out.println(toPostFix("( ( 5 + 2 ) * 3 ) - 1"));
+
         
     }
     
