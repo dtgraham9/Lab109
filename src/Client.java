@@ -387,6 +387,8 @@ public class Client {
                 StringBuilder expression = new StringBuilder("Expression: ");
                 StringBuilder postFixExpression = new StringBuilder("Post Fix: ");
                 String tokens = (String) queueFile.dequeue();
+                if(tokens.equals(""))
+                    continue;
                 expression.append(tokens);
                 System.out.println(expression.toString());
                 LinkedQueue<String> postFix = toPostFix(tokens);
