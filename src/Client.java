@@ -1,25 +1,26 @@
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.List;
 import java.util.Scanner;
 import javax.swing.JOptionPane;
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 /**
- *
+ * Gets a data file from user and proceeds to evaluate expressions inside and 
+ * create LinkedBinaryTrees and display their preorder, in order, post order, and 
+ * Euler's tour traversals.  
  * @author Graham
+ * @version 
  */
 public class Client {
         
     public static String[][] opsByPrecedence = {{"+","-"},{"*","/"}};
     public static String[][] opsBrackets = {{"(",")"}, {"[","]"},{"{","}"}};
     
+    /**
+     * Checks to see if token is an operator.
+     * @param token
+     * @return 
+     */
     private static boolean isOp(String token) {
         for (int i = 0; i < opsByPrecedence.length; i++) {
             for (int j = 0; j < opsByPrecedence[i].length; j++) {
@@ -31,7 +32,12 @@ public class Client {
         return false;
     }
 
-    
+    /**
+     * Gets the Precedent value for the operator.  The higher the value the 
+     * higher its precedence is 
+     * @param token
+     * @return 
+     */
     private static int getPrecedence(String token) {
         for (int i = 0; i < opsByPrecedence.length; i++) {
             for (int j = 0; j < opsByPrecedence[i].length; j++) {
@@ -48,6 +54,11 @@ public class Client {
         return -1;
     }
     
+    /**
+     * checks to see if token is left bracket
+     * @param token
+     * @return 
+     */
     private static boolean isOpsLeftBracket(String token){
         for(int i = 0; i<opsBrackets.length; i++){
             if(token.equals(opsBrackets[i][0]))
@@ -56,6 +67,11 @@ public class Client {
         return false;
     }
     
+    /**
+     * Checks to see if token is a right bracket
+     * @param token
+     * @return 
+     */
     private static boolean isOpsRightBracket(String token){
         for(int i = 0; i<opsBrackets.length; i++){
             if(token.equals(opsBrackets[i][1]))
@@ -64,6 +80,12 @@ public class Client {
         return false;
     }
     
+    /**
+     * Checks to see if it is a complete set of brackets
+     * @param leftBracket
+     * @param rightBracket
+     * @return 
+     */
     private static boolean compareBrackets(String leftBracket, String rightBracket){
         for(int i = 0; i<3; i++){
             if(leftBracket.equals(opsBrackets[i][0]) && rightBracket.equals(opsBrackets[i][1]))
@@ -71,6 +93,11 @@ public class Client {
         }
         return false;
     }
+    /**
+     * Checks to see if token is a bracket
+     * @param token
+     * @return 
+     */
     private static boolean isBracket(String token) {
         for (int i = 0; i < opsBrackets.length; i++) {
             for (int j = 0; j < opsBrackets[i].length; j++) {
@@ -82,7 +109,14 @@ public class Client {
         return false;
     }
     
-    
+    /**
+     * The shunting yard algorithm.  Takes a String expression converts it into a queue
+     * them proceeds to push brackets and numerical values and lower precedent operators 
+     * awaiting for a closed bracket or high precedent operator to have elements of the
+     * stack be pop into another queue.
+     * @param expression
+     * @return 
+     */
     public static LinkedQueue<String> toPostFix(String expression) {
         
         Scanner scan = new Scanner(expression);
@@ -175,6 +209,13 @@ public class Client {
         return postFix;
     } 
     
+    
+    /**
+     * Takes a LinkedQueue of Strings and converts them into LinkedBinaryTrees
+     * where each element of tree is its own root of its own LinkedBinaryTree
+     * @param queue
+     * @return 
+     */
     public static LinkedQueue<LinkedBinaryTree> makeTreeNodes(LinkedQueue<String> queue){
         LinkedQueue<LinkedBinaryTree> tree = new LinkedQueue();
         while(!queue.isEmpty()){
@@ -185,6 +226,14 @@ public class Client {
         return tree;
     }
     
+    
+    /**
+     * Takes a LinkedQueue of LinkedBinaryTrees and pushs non operators onto a stack
+     * that will have them pop and attach to an operator which then will be pushed
+     * back onto the stack
+     * @param queue
+     * @return 
+     */
     public static LinkedBinaryTree constructTree(LinkedQueue<LinkedBinaryTree> queue){
         LinkedStack<LinkedBinaryTree> treeBuilder = new LinkedStack();
         while(!queue.isEmpty()){
@@ -201,12 +250,22 @@ public class Client {
         }
         return treeBuilder.pop();
     }
-    
+    /**
+     * Confirms if the user wants to exit after clicking cancel
+     * @return 
+     */
     public static boolean confirmExit(){
         int option = JOptionPane.showConfirmDialog(null,"Are you sure you want to exit?","exit", JOptionPane.YES_NO_OPTION);
         return JOptionPane.YES_OPTION == option;
     }
 
+    
+    /**
+     * Takes a scanner and will return it will it being able to read from a 
+     * data file that does exist that was provided by a user
+     * @param scan
+     * @return 
+     */
     public static Scanner filePath(Scanner scan) {
         boolean debug = false;
         if (debug) {
@@ -248,6 +307,12 @@ public class Client {
         return scan;
     }
     
+    /**
+     * Takes the scanner scan that has location of file with data and 
+     * extracts each token line and puts into a queue and returns it
+     * @param scan
+     * @return 
+     */
     public static LinkedQueue storeInQueue(Scanner scan){
         
         LinkedQueue queueFile = new LinkedQueue();
@@ -264,12 +329,16 @@ public class Client {
         return queueFile;
     }
     
+    /**
+     * Evaluates a post fix expression.  Takes a LinkedQueue and extracts elements
+     * type casts them to double and performs correct operation
+     * @param queue
+     * @return 
+     */
     public static double evaluateExpression(LinkedQueue queue){
-        LinkedQueue<String> temp = new LinkedQueue();
         LinkedStack<Double> stack = new LinkedStack();
         while(!queue.isEmpty()){
             String token  = (String) queue.dequeue();
-            temp.enqueue(token);
             if(isOp(token)){
                 Double product;
                 Double rightOperand = stack.pop();
@@ -298,11 +367,13 @@ public class Client {
                 stack.push((Double.parseDouble(token)));
             }
         }
-        queue = temp;
         return stack.pop();
     }
     
     /**
+     * Gets a data file from user and proceeds to evaluate expressions inside and 
+     * create LinkedBinaryTrees and display their preorder, in order, post order, and 
+     * Euler's tour traversals.  
      * @param args the command line arguments
      */
     public static void main(String[] args) {
@@ -310,41 +381,52 @@ public class Client {
         LinkedQueue<String> queueFile = storeInQueue(scan);
         while(!queueFile.isEmpty()){
             try{
-                String expression = (String) queueFile.dequeue();
-                System.out.println("Expression: " + expression);
-                LinkedQueue<String> postFix = toPostFix(expression);
+                StringBuilder postOrderExpression = new StringBuilder("Post Order: ");
+                StringBuilder preOrderExpression = new StringBuilder("Pre Order: ");
+                StringBuilder inOrderExpression = new StringBuilder("In Order: ");
+                StringBuilder expression = new StringBuilder("Expression: ");
+                StringBuilder postFixExpression = new StringBuilder("Post Fix: ");
+                String tokens = (String) queueFile.dequeue();
+                expression.append(tokens);
+                System.out.println(expression.toString());
+                LinkedQueue<String> postFix = toPostFix(tokens);
+                
+                LinkedQueue<String> temp = new LinkedQueue();
+                while(!postFix.isEmpty()){
+                    postFixExpression.append(postFix.first()).append(" ");
+                    temp.enqueue(postFix.dequeue());
+                }
+                
+                postFix = temp;
+                temp = null;
                 
                 LinkedQueue<LinkedBinaryTree> postFixTree = makeTreeNodes(postFix);
                 LinkedBinaryTree myTree = constructTree(postFixTree);
                 
-                System.out.print("Pre Order: ");
+                //Pre order
                 Iterable<Position<String>> preOrder = myTree.preorder();
                 for(Position<String> pO : preOrder){
-                    System.out.print(pO.getElement() + " ");
+                    preOrderExpression.append(pO.getElement()).append(" ");
                 }
-                
-                System.out.print("\nIn Order: ");
+                //In order
                 Iterable<Position<String>> inOrder = myTree.inorder();
                 for(Position<String> iO : inOrder){
-                    System.out.print(iO.getElement() + " ");
+                    inOrderExpression.append(iO.getElement()).append(" ");
                 }
                 
-                System.out.print("\nPost Order: ");
-                StringBuilder postFixExpression = new StringBuilder();
-                LinkedQueue<String> postFixQueue = new LinkedQueue();
+                //post order    
                 Iterable<Position<String>> postOrder =  myTree.postorder();
                 for(Position<String> pO : postOrder){
-                    postFixExpression.append(pO.getElement()).append(" ");
-                    postFixQueue.enqueue(pO.getElement());
-                    System.out.print(pO.getElement()+ " ");
+                    postOrderExpression.append(pO.getElement()).append(" ");
                 }
                 
-                System.out.print("\nEuler's Tour: ");
+                
+                System.out.println(postFixExpression.toString());
+                System.out.println(preOrderExpression.toString());
+                System.out.println(inOrderExpression.toString());
+                System.out.println(postOrderExpression.toString());
+                System.out.print("Euler's Tour: ");
                 LinkedBinaryTree.parenthesize(myTree, myTree.root);
-                
-                System.out.println("\nPost Fix Expression: " + postFixExpression.toString());
-                System.out.println("Evaluated Expression: " + evaluateExpression(postFixQueue));
-                
                 System.out.println("\n");
             }
             catch (RuntimeException e){
